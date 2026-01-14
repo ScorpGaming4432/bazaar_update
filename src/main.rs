@@ -13,22 +13,22 @@ use chrono::{Local, Timelike};
 pub struct FixedPoint(i64);
 impl FixedPoint {
     const SCALE: i64 = 100; // 10^2 for 2 decimal places
-
+    
     // Constructor from a float (e.g., FixedPoint::from_float(1.23))
     pub fn from_float(value: f64) -> Self {
         Self((value * Self::SCALE as f64).round() as i64)
     }
-
+    
     // Constructor from an integer (e.g., FixedPoint::from_int(123) for 1.23)
     pub fn from_int(value: i64) -> Self {
         Self(value)
     }
-
+    
     // Convert back to float for display or calculations
     pub fn to_float(self) -> f64 {
         self.0 as f64 / Self::SCALE as f64
     }
-
+    
     // Get the raw scaled value
     pub fn raw(self) -> i64 {
         self.0
@@ -73,8 +73,8 @@ impl fmt::Display for FixedPoint {
 
 fn deserialize_fixed_point<'de, D>(deserializer: D) -> Result<FixedPoint, D::Error> where D: serde::Deserializer<'de>,
 {
-        let value: f64 = Deserialize::deserialize(deserializer)?;
-        Ok(FixedPoint::from_float(value))
+    let value: f64 = Deserialize::deserialize(deserializer)?;
+    Ok(FixedPoint::from_float(value))
 }
 
 #[allow(non_snake_case)]
@@ -116,30 +116,41 @@ struct BazaarResponse {
     products: HashMap<String, Product>,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn get_and_dump() -> Result<(), Box<dyn std::error::Error>> {
     let response: BazaarResponse =
-        reqwest::blocking::get("https://api.hypixel.net/v2/skyblock/bazaar")?.json()?;
-
+    reqwest::blocking::get("https://api.hypixel.net/v2/skyblock/bazaar")?.json()?;
+    
     println!("Success: {}", response.success);
     println!("Last updated: {}", response.lastUpdated);
     println!("Number of products: {}", response.products.len());
-
+    
     // Create raw directory if it doesn't exist
     fs::create_dir_all("raw")?;
-
+    
     // Generate filename with YYYYMMDD_<seconds-from-midnight> format
     let now: chrono::DateTime<Local> = Local::now();
     let date_str: String = now.format("%Y%m%d").to_string();
     let seconds_from_midnight: u32 = (now.hour() * 3600)
-        + (now.minute() * 60)
-        + now.second();
+    + (now.minute() * 60)
+    + now.second();
     let filename: String = format!("raw/{}_{:05}.json", date_str, seconds_from_midnight);
-
+    
     // Serialize response to JSON and write to file
     let json: String = serde_json::to_string_pretty(&response)?;
     fs::write(&filename, json)?;
-
+    
     println!("Response saved to: {}", filename);
-
+    
     Ok(())
 }
+
+fn generate_csv() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    get_and_dump()?;
+    generate_csv()?;
+    Ok(())
+}
+
