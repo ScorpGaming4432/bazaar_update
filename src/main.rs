@@ -1,4 +1,3 @@
-use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Add, Sub, Mul, Div};
@@ -133,7 +132,7 @@ fn get_and_dump() -> Result<(), Box<dyn std::error::Error>> {
     let seconds_from_midnight: u32 = (now.hour() * 3600)
     + (now.minute() * 60)
     + now.second();
-    let filename: String = format!("raw/{}_{:05}.json", date_str, seconds_from_midnight);
+    let filename: String = format!("raw/{}{:05}.json", date_str, seconds_from_midnight);
     
     // Serialize response to JSON and write to file
     let json: String = serde_json::to_string_pretty(&response)?;
@@ -144,7 +143,41 @@ fn get_and_dump() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn newest_file() -> Option<std::path::PathBuf> {
+    let paths: fs::ReadDir = fs::read_dir("./raw/").ok()?;
+    let mut newest: Option<std::path::PathBuf> = None;
+    for path in paths {
+        let path: std::path::PathBuf = path.ok()?.path();
+        if newest.is_none() || path.file_name()? > newest.as_ref()?.file_name()? {
+            newest = Some(path);
+        }
+    }
+    newest
+}
+
 fn generate_csv() -> Result<(), Box<dyn std::error::Error>> {
+    let newest_path: std::path::PathBuf = newest_file().ok_or("No raw files found")?;
+    let data: String = fs::read_to_string(&newest_path)?;
+    let response: BazaarResponse = serde_json::from_str(&data)?;
+
+    let mut wtr: csv::Writer<fs::File> = csv::Writer::from_path("bazaar_summary.csv")?;
+    wtr.write_record(&["last_updated",response.lastUpdated.to_string().as_str(), "", "", "", "", ""])?;
+    wtr.write_record(&["product_id", "sell_price", "sell_volume", "buy_price", "buy_volume", "sell_orders", "buy_orders"])?;
+    for(_, product) in response.products.iter() {
+        let quick_status: &QuickStatus = &product.quick_status;
+        wtr.write_record(&[
+            &product.product_id,
+            &quick_status.sellPrice.to_string(),
+            &quick_status.sellVolume.to_string(),
+            &quick_status.buyPrice.to_string(),
+            &quick_status.buyVolume.to_string(),
+            &quick_status.sellOrders.to_string(),
+            &quick_status.buyOrders.to_string()
+        ])?;
+    }
+    wtr.flush()?;
+    println!("CSV summary generated: bazaar_summary.csv");
+
     Ok(())
 }
 

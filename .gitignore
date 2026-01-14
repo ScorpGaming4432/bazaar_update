@@ -26,3 +26,6 @@ target
 
 # raw data files
 raw/
+
+# generated CSV files
+*.csv
