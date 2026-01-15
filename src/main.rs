@@ -5,15 +5,16 @@ use std::fmt;
 use std::fs;
 use chrono::{Local, Timelike};
 
-// Simple fixed-point type with 2 decimal places (scale factor of 100).
-// For example, 1.23 is stored as 123.
+// Simple fixed-point with 2 decimal places (scale factor of 100).
+// f.e. 1.23 is stored as 123.
+// honestly scale could be 1 TODO
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 
 pub struct FixedPoint(i64);
 impl FixedPoint {
     const SCALE: i64 = 100; // 10^2 for 2 decimal places
     
-    // Constructor from a float (e.g., FixedPoint::from_float(1.23))
+    // Constructor from a float (e.g., FixedPoint::from_float(1.23)) will round anyway 
     pub fn from_float(value: f64) -> Self {
         Self((value * Self::SCALE as f64).round() as i64)
     }
@@ -123,10 +124,10 @@ fn get_and_dump() -> Result<(), Box<dyn std::error::Error>> {
     println!("Last updated: {}", response.lastUpdated);
     println!("Number of products: {}", response.products.len());
     
-    // Create raw directory if it doesn't exist
+    // Create raw dir if doesn't exist
     fs::create_dir_all("raw")?;
     
-    // Generate filename with YYYYMMDD_<seconds-from-midnight> format
+    // Generate filename with YYYYMMDD_<seconds-from-midnight>.json format
     let now: chrono::DateTime<Local> = Local::now();
     let date_str: String = now.format("%Y%m%d").to_string();
     let seconds_from_midnight: u32 = (now.hour() * 3600)
